@@ -322,7 +322,7 @@ homeworld_pool=crusader
 ai_nature_pool=none
 
 base_stats:
-НС=0
+НС=40
 НР=40
 СЛ=40
 ВН=40
