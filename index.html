@@ -372,10 +372,14 @@ if(availableXp < cost){
 
     let cost = 0;
 
-    if(current < 10) cost = 200;
-    else if(current < 20) cost = 350;
-    else if(current < 30) cost = 500;
-    else cost = 750;
+    if(!(skill in c.skills)) cost = 200;
+else if(current < 10) cost = 350;
+else if(current < 20) cost = 500;
+else if(current < 30) cost = 750;
+else {
+    alert("Навык уже достиг предела +30.");
+    return;
+}
 
     let availableXp = c.startingXp + c.xpRefund - c.spentXp;
 
@@ -384,8 +388,13 @@ if(availableXp < cost){
         return;
     }
 
-    c.skills[skill] = current + 10;
-    c.spentXp += cost;
+    if(!(skill in c.skills)){
+    c.skills[skill] = 0;
+}else{
+    c.skills[skill] += 10;
+}
+
+c.spentXp += cost;
 
     out(card(c));
  }
