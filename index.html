@@ -67,11 +67,14 @@ pre{white-space:pre-wrap;word-wrap:break-word;background:#0b0c0f;border:1px soli
   <button onclick="buyStatUpgrade('ОЩ')">ОЩ +5</button>
 </div>
 
- <h3>Покупка навыков</h3>
+ <h3>Покупка талантов</h3>
 <div class="row">
-  <select id="skillsBuySelect" onchange="updateSkillSpecSelect()"></select>
-  <select id="skillSpecSelect"></select>
-  <button onclick="buySkills()">Купить / улучшить навык</button>
+    <select id="talentsBuySelect"
+            onchange="updateTalentVariantSelect()"></select>
+
+    <select id="talentVariantSelect"></select>
+
+    <button onclick="buyTalent()">Купить талант</button>
 </div>
 
  <h3>Покупка талантов</h3>
@@ -192,6 +195,7 @@ async function loadDB(){
     fillSelect("specialtySelect",Object.keys(DB.specialties));
    fillSelect("skillsBuySelect",Object.keys(DB.skills));
    fillSelect("talentsBuySelect",Object.keys(DB.talents));
+   updateTalentVariantSelect();
    updateSkillSpecSelect();
     updateOrigins();
     prepareStats();
@@ -224,6 +228,29 @@ async function loadDB(){
         o.value=v;
         o.textContent=v;
         spec.appendChild(o);
+    }
+ }
+
+ function updateTalentVariantSelect(){
+
+    let talent = document.getElementById("talentsBuySelect").value;
+    let select = document.getElementById("talentVariantSelect");
+
+    select.innerHTML = "";
+
+    let data = DB.talents[talent] || {};
+    let variants = splitList(data.variants || "");
+
+    let o = document.createElement("option");
+    o.value = "";
+    o.textContent = "Без специализации";
+    select.appendChild(o);
+
+    for(let v of variants){
+        let opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        select.appendChild(opt);
     }
  }
 
@@ -505,8 +532,15 @@ c.spentXp += cost;
 
     let c = window.currentCharacter;
     let talent = document.getElementById("talentsBuySelect").value;
+  let variant =
+document.getElementById("talentVariantSelect").value;
 
-    let talentData = DB.talents[talent];
+if(variant){
+    talent = `${talent} (${variant})`;
+}
+
+    let baseTalent = talent.replace(/\s*\(.*\)$/,"");
+let talentData = DB.talents[baseTalent];
 
     if(!talentData){
         alert("Талант не найден.");
