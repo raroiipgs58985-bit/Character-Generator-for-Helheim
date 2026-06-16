@@ -329,13 +329,53 @@ function parseSkill(raw){
  return {name:(m?m[1]:raw).trim(),value:m&&m[2]?parseInt(m[2],10):0};
 }
 
-function addSkills(c,arr){
- for(const raw of arr){
-  let p=parseSkill(raw);
-  if(!p.name)continue;
-  if(!(p.name in c.skills))c.skills[p.name]=p.value;
-  else c.skills[p.name]+=p.value?p.value:5;
- }
+function normalizeSkillName(name){
+  return name
+    .replace(/^Общее знание\s*\(/, "Общие знания (")
+    .replace(/^Общие знание\s*\(/, "Общие знания (")
+    .replace(/^Общие знания\s*\(/, "Общие знания (")
+    .replace(/^Учёное знание\s*\(/, "Учёные знания (")
+    .replace(/^Учёные знания\s*\(/, "Учёные знания (")
+    .trim();
+}
+function expandSkill(raw){
+  let p = parseSkill(raw);
+  let name = normalizeSkillName(p.name);
+  let value = p.value;
+
+  let m = name.match(/^(.+?)\s*\((.+)\)$/);
+  if (!m) return [{name, value}];
+
+  let base = m[1].trim();
+  let inside = m[2].trim();
+
+  if (!inside.includes("/")) return [{name, value}];
+
+  return inside
+    .split("/")
+    .map(x => x.trim())
+    .filter(Boolean)
+    .map(x => ({
+      name: `${base} (${x})`,
+      value
+    }));
+}
+
+function addOneSkill(c, name, value){
+  if (!(name in c.skills)) {
+    c.skills[name] = value;
+  } else {
+    c.skills[name] += value ? value : 5;
+  }
+}
+
+function addSkills(c, arr){
+  for (const raw of arr) {
+    for (const skill of expandSkill(raw)) {
+      if (!skill.name) continue;
+      addOneSkill(c, skill.name, skill.value);
+    }
+  }
 }
 
 function addTalents(c,arr){
