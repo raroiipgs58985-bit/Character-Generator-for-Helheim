@@ -74,6 +74,12 @@ pre{white-space:pre-wrap;word-wrap:break-word;background:#0b0c0f;border:1px soli
   <button onclick="buySkills()">Купить / улучшить навык</button>
 </div>
 
+ <h3>Покупка талантов</h3>
+<div class="row">
+  <select id="talentsBuySelect"></select>
+  <button onclick="buyTalent()">Купить талант</button>
+</div>
+ 
 <label>Родной мир / природа Искина</label>
 <select id="originSelect"></select>
 
@@ -185,6 +191,7 @@ async function loadDB(){
     fillSelect("templateSelect",Object.keys(DB.templates));
     fillSelect("specialtySelect",Object.keys(DB.specialties));
    fillSelect("skillsBuySelect",Object.keys(DB.skills));
+   fillSelect("talentsBuySelect",Object.keys(DB.talents));
    updateSkillSpecSelect();
     updateOrigins();
     prepareStats();
@@ -399,7 +406,6 @@ if(availableXp < cost){
 if(spec){
     skill = `${skill.trim()} (${spec.trim()})`;
 }
-
     let current = c.skills[skill] || 0;
 
     let cost = 0;
