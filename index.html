@@ -443,32 +443,45 @@ c.spentXp += cost;
         return true;
     }
 
+    const STAT_ALIASES = {
+        "НАВЫК СТРЕЛЬБЫ":"НС",
+        "РУКОПАШНЫЙ БОЙ":"НР",
+        "СИЛА":"СЛ",
+        "ВЫНОСЛИВОСТЬ":"ВН",
+        "ЛОВКОСТЬ":"ЛВ",
+        "ИНТЕЛЛЕКТ":"ИН",
+        "СИЛА ВОЛИ":"СВ",
+        "ВОСПРИЯТИЕ":"ВС",
+        "ОБЩЕНИЕ":"ОЩ"
+    };
+
     let groups = req.split("|");
 
     for(let group of groups){
 
         let ok = true;
-
         let conditions = group.split(",");
 
         for(let cond of conditions){
 
-            cond = cond.trim();
+            cond = cond.trim().replace(/\+$/, "");
 
             if(!cond) continue;
 
-            let m = cond.match(/^([А-ЯA-Z]{2})\s+(\d+)$/i);
+            let m = cond.match(/^(.+?)\s+(\d+)$/i);
 
             if(m){
-                let stat = m[1].toUpperCase();
+                let rawStat = m[1].trim().toUpperCase();
+                let stat = STAT_ALIASES[rawStat] || rawStat;
                 let need = parseInt(m[2]);
 
-                if((c.stats?.[stat] || 0) < need){
-                    ok = false;
-                    break;
+                if(MAIN_STATS.includes(stat)){
+                    if((c.stats?.[stat] || 0) < need){
+                        ok = false;
+                        break;
+                    }
+                    continue;
                 }
-
-                continue;
             }
 
             if(!(c.talents || []).includes(cond)){
@@ -481,7 +494,7 @@ c.spentXp += cost;
     }
 
     return false;
- }
+}
 
  function buyTalent(){
 
