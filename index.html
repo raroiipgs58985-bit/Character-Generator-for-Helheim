@@ -67,6 +67,12 @@ pre{white-space:pre-wrap;word-wrap:break-word;background:#0b0c0f;border:1px soli
   <button onclick="buyStatUpgrade('ОЩ')">ОЩ +5</button>
 </div>
 
+ <h3>Покупка навыков</h3>
+<div class="row">
+  <select id="skillBuySelect"></select>
+  <button onclick="buySkill()">Купить / улучшить навык</button>
+</div>
+
 <label>Родной мир / природа Искина</label>
 <select id="originSelect"></select>
 
@@ -176,6 +182,7 @@ async function loadDB(){
     DB.specialties={...DB.soldiers,...DB.officerSupport,...DB.civilian};
     fillSelect("templateSelect",Object.keys(DB.templates));
     fillSelect("specialtySelect",Object.keys(DB.specialties));
+   fillSelect("skillBuySelect",Object.keys(DB.skills));
     updateOrigins();
     prepareStats();
 
@@ -347,6 +354,37 @@ if(availableXp < cost){
 
   out(card(c));
 }
+
+ function buySkill(){
+    if(!window.currentCharacter){
+        alert("Сначала сгенерируй карточку.");
+        return;
+    }
+
+    let c = window.currentCharacter;
+    let skill = document.getElementById("skillBuySelect").value;
+
+    let current = c.skills[skill] || 0;
+
+    let cost = 0;
+
+    if(current < 10) cost = 200;
+    else if(current < 20) cost = 350;
+    else if(current < 30) cost = 500;
+    else cost = 750;
+
+    let availableXp = c.startingXp + c.xpRefund - c.spentXp;
+
+    if(availableXp < cost){
+        alert(`Не хватает опыта. Нужно ${cost}, доступно ${availableXp}.`);
+        return;
+    }
+
+    c.skills[skill] = current + 10;
+    c.spentXp += cost;
+
+    out(card(c));
+ }
  
 function validateStats(){
  const mode=document.getElementById("statMode").value;
