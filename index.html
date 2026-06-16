@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Helheim Character Generator</title>
+<style>
+body{margin:0;background:#101114;color:#e8e8e8;font-family:system-ui;padding:14px}
+.wrap{max-width:1100px;margin:auto}.grid{display:grid;gap:12px}@media(min-width:900px){.grid{grid-template-columns:420px 1fr}}
+.card{background:#181a20;border:1px solid #343844;border-radius:12px;padding:12px}
+h1{font-size:22px}h2{font-size:18px;color:#d7a17a}
+label{display:block;margin:10px 0 5px;color:#aaa;font-size:14px}
+input,select,textarea,button{width:100%;border-radius:8px;border:1px solid #343844;background:#20232b;color:#e8e8e8;padding:9px;font-size:15px}
+button{background:#d7a17a;color:#160d08;font-weight:700;border:none;margin-top:10px}.secondary{background:#20232b;color:#e8e8e8;border:1px solid #343844}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat input{text-align:center}
+.small{color:#aaa;font-size:13px;line-height:1.35}.ok{color:#8cff9b;font-weight:700}.bad{color:#ff7777;font-weight:700}
+pre{white-space:pre-wrap;word-wrap:break-word;background:#0b0c0f;border:1px solid #343844;border-radius:12px;padding:12px;min-height:420px;font-size:14px;line-height:1.4}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Helheim Character Generator</h1>
+<p class="small">Положи этот файл <b>index.html</b> в корень репозитория. Он читает базы из папки <b>data/</b>.</p>
+<div class="grid">
+<div class="card">
+<h2>Создание персонажа</h2>
+<label>Имя</label><input id="charName" placeholder="Имя персонажа">
+<label>Раса / шаблон</label><select id="templateSelect"></select>
+<div class="row"><div><label>Распределение</label><select id="statMode"><option value="planned">Плановое</option><option value="random">Случайное 2к10</option></select></div><div><label>ОБ вручную</label><input id="armor" value="0/0/0/0"></div></div>
+<button onclick="prepareStats()">Подготовить характеристики</button>
+<p id="pointsInfo" class="small"></p><div id="statsBox" class="stats"></div>
+<label>Родной мир / природа Искина</label><select id="originSelect"></select>
+<label>Специальность</label><select id="specialtySelect"></select>
+<div class="row"><div><label>Очки безумия</label><input id="madness" value="0"></div><div><label>Очки судьбы</label><input id="fate" value="0"></div></div>
+<label>Импланты</label><textarea id="implants" rows="2" placeholder="Через ;"></textarea>
+<label>Снаряжение вручную</label><textarea id="manualEquipment" rows="3" placeholder="Через ;"></textarea>
+<label>Примечание</label><textarea id="notes" rows="2"></textarea>
+<button onclick="generate()">Сгенерировать карточку</button>
+<button class="secondary" onclick="downloadCard()">Скачать карточку txt</button>
+<p id="status" class="small"></p>
+</div>
+<div class="card"><h2>Итоговая карточка</h2><pre id="output">Загрузка базы...</pre></div>
+</div>
+</div>
+<script>
+const MAIN_STATS=["НС","НР","СЛ","ВН","ЛВ","ИН","СВ","ВС","ОЩ"];
+const BONUS_NAMES={НС:"БНС",НР:"БНР",СЛ:"БСЛ",ВН:"БВН",ЛВ:"БЛВ",ИН:"БИН",СВ:"БСВ",ВС:"БВС",ОЩ:"БОЩ"};
+const DB_FILES={templates:"data/templates.txt",homeworlds:"data/homeworlds.txt",aiNatures:"data/ai_natures.txt",talents:"data/talents.txt",soldiers:"data/specialties_soldiers.txt",officerSupport:"data/specialties_officer_support.txt",civilian:"data/specialties_civilian.txt"};
+let DB={};
+function joinSemi(a,b){return a?a+"; "+b:b}
+function parseBlocks(text){
+ let blocks={},current=null,currentKey=null;
+ for(let raw of text.split(/\r?\n/)){
+  let line=raw.trim();
+  if(!line||line.startsWith("#"))continue;
+  if(line.startsWith("[")&&line.endsWith("]")){current=line.slice(1,-1).trim();blocks[current]={};currentKey=null;continue}
+  if(!current)continue;
+  if(line.endsWith(":")){currentKey=line.slice(0,-1).trim();blocks[current][currentKey]="";continue}
+  if(line.startsWith("-")&&currentKey){blocks[current][currentKey]=joinSemi(blocks[current][currentKey],line.slice(1).trim());continue}
+  if(line.includes("=")){
+   let i=line.indexOf("="),key=line.slice(0,i).trim(),value=line.slice(i+1).trim();
+   if(currentKey&&MAIN_STATS.includes(key))blocks[current][currentKey]=joinSemi(blocks[current][currentKey],key+"="+value);
+   else{blocks[current][key]=value;currentKey=null}
+  }
+ }
+ return blocks
+}
+async function loadText(path){let r=await fetch(path);if(!r.ok)throw new Error("Не удалось загрузить "+path);return await r.text()}
+async function loadDB(){
+ try{
+  for(const [k,p] of Object.entries(DB_FILES))DB[k]=parseBlocks(await loadText(p));
+  DB.specialties={...DB.soldiers,...DB.officerSupport,...DB.civilian};
+  fillSelect("templateSelect",Object.keys(DB.templates));fillSelect("specialtySelect",Object.keys(DB.specialties));
+  updateOrigins();prepareStats();out("База загружена. Выбери параметры и нажми «Сгенерировать карточку».")
+ }catch(e){out("Ошибка загрузки базы:\n"+e.message+"\n\nПроверь: index.html в корне, txt-файлы в data/.")}
+}
+function fillSelect(id,names){let s=document.getElementById(id);s.innerHTML="";for(const n of names){let o=document.createElement("option");o.value=n;o.textContent=n;s.appendChild(o)}}
+function intv(v,d=0){let m=String(v??"").match(/-?\d+/);return m?parseInt(m[0]):d}
+function splitList(t){return t?t.split(";").map(x=>x.trim()).filter(Boolean):[]}
+function parseBaseStats(b){let st={};for(const s of MAIN_STATS)st[s]=0;if(b.base_stats){for(const p of splitList(b.base_stats)){let m=p.match(/^(НС|НР|СЛ|ВН|ЛВ|ИН|СВ|ВС|ОЩ)\s*=?\s*(-?\d+)/);if(m)st[m[1]]=parseInt(m[2])}}for(const s of MAIN_STATS)if(b[s]!==undefined)st[s]=intv(b[s]);return st}
+function parseMods(t){let m={};for(const s of MAIN_STATS)m[s]=0;for(const p of splitList(t)){let r=p.match(/^(НС|НР|СЛ|ВН|ЛВ|ИН|СВ|ВС|ОЩ)\s*([+-]?\d+)/);if(r)m[r[1]]+=parseInt(r[2])}return m}
+function updateOrigins(){let n=document.getElementById("templateSelect").value,t=DB.templates[n]||{},syn=(t.type||"").toLowerCase()=="synthetic"||n.toLowerCase()=="искин";fillSelect("originSelect",Object.keys(syn?DB.aiNatures:DB.homeworlds))}
+document.getElementById("templateSelect").addEventListener("change",()=>{updateOrigins();prepareStats()});
+document.getElementById("statMode").addEventListener("change",prepareStats);
+function roll2d10(){return 1+Math.floor(Math.random()*10)+1+Math.floor(Math.random()*10)}
+function prepareStats(){
+ let n=document.getElementById("templateSelect").value,t=DB.templates[n]||{},base=parseBaseStats(t),mode=document.getElementById("statMode").value;
+ document.getElementById("pointsInfo").textContent=mode=="planned"?`Доступно очков: ${intv(t.stat_points_planned,100)}. Максимум в одну характеристику: ${intv(t.stat_max_add,20)}.`:"Случайный режим: к базе добавлено 2к10.";
+ let box=document.getElementById("statsBox");box.innerHTML="";
+ for(const s of MAIN_STATS){let d=document.createElement("div");d.className="stat";d.innerHTML=`<label>${s} база ${base[s]}</label><input id="stat_${s}" type="number" value="${mode=="random"?base[s]+roll2d10():base[s]}">`;box.appendChild(d)}
+}
+function statInputs(){let st={};for(const s of MAIN_STATS)st[s]=intv(document.getElementById("stat_"+s).value);return st}
+function parseSkill(raw){let m=raw.trim().match(/^(.*?)(?:\s+([+-]\d+))?$/);return {name:(m?m[1]:raw).trim(),value:m&&m[2]?parseInt(m[2]):0}}
+function addSkills(c,arr){for(const raw of arr){let p=parseSkill(raw);if(!p.name)continue;if(!(p.name in c.skills))c.skills[p.name]=p.value;else c.skills[p.name]+=p.value?p.value:5}}
+function addTalents(c,arr){for(const raw of arr){let n=raw.trim();if(!n)continue;let rep=String((DB.talents[n]||{}).repeatable||"false").toLowerCase()=="true";if(rep||!c.talents.includes(n))c.talents.push(n);else c.xpRefund+=25}}
+function addUnique(a,arr){for(const x of arr)if(x&&!a.includes(x))a.push(x)}
+function applyBlock(c,b){let mods=parseMods(b.stat_modifiers);for(const s of MAIN_STATS)c.stats[s]+=mods[s]||0;c.size+=intv(b.size);c.woundBonus+=intv(b.wound_bonus);addSkills(c,splitList(b.skills||b.starting_skills));addTalents(c,splitList(b.talents||b.starting_talents));addUnique(c.traits,splitList(b.traits));addUnique(c.equipment,splitList(b.equipment||b.starting_equipment))}
+function generate(){
+ let tn=document.getElementById("templateSelect").value,t=DB.templates[tn]||{},syn=(t.type||"").toLowerCase()=="synthetic"||tn.toLowerCase()=="искин",on=document.getElementById("originSelect").value,sn=document.getElementById("specialtySelect").value;
+ let c={name:document.getElementById("charName").value.trim()||"Безымянный",templateName:tn,originName:on,specialtyName:sn,stats:statInputs(),size:intv(t.size),woundBonus:intv(t.wound_bonus),armor:document.getElementById("armor").value.trim()||"0/0/0/0",madness:document.getElementById("madness").value.trim()||"0",fate:document.getElementById("fate").value.trim()||"0",skills:{},talents:[],traits:[],implants:splitList(document.getElementById("implants").value),equipment:splitList(document.getElementById("manualEquipment").value),notes:document.getElementById("notes").value.trim(),startingXp:1000,xpRefund:0,spentXp:0};
+ addSkills(c,splitList(t.skills||t.starting_skills));addTalents(c,splitList(t.talents||t.starting_talents));addUnique(c.traits,splitList(t.traits));addUnique(c.equipment,splitList(t.equipment||t.starting_equipment));
+ applyBlock(c,(syn?DB.aiNatures:DB.homeworlds)[on]||{});let sp=DB.specialties[sn]||{};c.spentXp+=intv(sp.cost);applyBlock(c,sp);
+ out(card(c));document.getElementById("status").innerHTML='<span class="ok">Карточка создана.</span>'
+}
+function card(c){let b={};for(const s of MAIN_STATS)b[BONUS_NAMES[s]]=Math.floor((c.stats[s]||0)/10);let bm=b.БЛВ+c.size,w=c.woundBonus+(b.БВН+b.БСВ)*2,xp=c.startingXp+c.xpRefund-c.spentXp,L=[];L.push("====================================",c.name.toUpperCase(),"====================================","",`Раса: ${c.templateName}`,`Родной мир / Природа Искина: ${c.originName}`,`Специальность: ${c.specialtyName}`,"","ХАРАКТЕРИСТИКИ");for(const s of MAIN_STATS)L.push(`${s}: ${c.stats[s]} (${BONUS_NAMES[s]} ${b[BONUS_NAMES[s]]})`);L.push("","ПРОИЗВОДНЫЕ",`Движение: ${bm}/${bm*2}/${bm*3}/${bm*6}`,`ОБ: ${c.armor}`,`БВ: ${b.БВН}`,`Раны: ${w}`,`Очки безумия: ${c.madness}`,`Очки судьбы: ${c.fate}`,"","ОПЫТ",`Стартовый опыт: ${c.startingXp}`,`Компенсация за дубли талантов: ${c.xpRefund}`,`Потрачено: ${c.spentXp}`,`Остаток: ${xp}`,"","НАВЫКИ");let sk=Object.keys(c.skills).sort();L.push(...(sk.length?sk.map(n=>`- ${n}${c.skills[n]?" +"+c.skills[n]:""}`):["-"]));L.push("","ТАЛАНТЫ",...(c.talents.length?c.talents.map(x=>"- "+x):["-"]),"","ОСОБЕННОСТИ",...(c.traits.length?c.traits.map(x=>"- "+x):["-"]),"","ИМПЛАНТЫ",...(c.implants.length?c.implants.map(x=>"- "+x):["-"]),"","СНАРЯЖЕНИЕ",...(c.equipment.length?c.equipment.map(x=>"- "+x):["-"]));if(c.notes)L.push("","ПРИМЕЧАНИЕ",c.notes);return L.join("\n")}
+function out(t){document.getElementById("output").textContent=t}
+function downloadCard(){let text=document.getElementById("output").textContent,blob=new Blob([text],{type:"text/plain;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="character_card.txt";a.click();URL.revokeObjectURL(a.href)}
+loadDB();
+</script>
+</body>
+</html>
