@@ -349,17 +349,19 @@ function expandSkill(raw){
   let base = m[1].trim();
   let inside = m[2].trim();
 
-  if (!inside.includes("/")) return [{name, value}];
-
-  return inside
-    .split("/")
-    .map(x => x.trim())
-    .filter(Boolean)
-    .map(x => ({
-      name: `${base} (${x})`,
-      value
-    }));
+  if (!inside.includes(",")) {
+  return [{name, value}];
 }
+
+let parts = inside
+  .split(",")
+  .map(x => x.trim())
+  .filter(Boolean);
+
+return parts.map(x => ({
+  name: `${base} (${x})`,
+  value
+}));
 
 function addOneSkill(c, name, value){
   if (!(name in c.skills)) {
