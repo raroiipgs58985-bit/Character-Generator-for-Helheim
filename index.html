@@ -439,7 +439,7 @@ function generate(){
   implants:splitList(document.getElementById("implants").value),
   equipment:splitList(document.getElementById("manualEquipment").value),
   notes:document.getElementById("notes").value.trim(),
-  startingXp:1000,
+  startingXp:750,
   xpRefund:0,
   spentXp:0
  };
@@ -451,10 +451,13 @@ function generate(){
 
  applyBlock(c,(syn?DB.aiNatures:DB.homeworlds)[on]||{});
 
- let sp=DB.specialties[sn]||{};
- c.spentXp+=intv(sp.cost,0);
- applyBlock(c,sp);
+if (c.traits.some(x => x.includes("Быстрое обучение"))) {
+    c.startingXp = c.startingXp * 1.25;
+}
 
+let sp=DB.specialties[sn]||{};
+c.spentXp+=intv(sp.cost,0);
+applyBlock(c,sp);
  out(card(c));
  document.getElementById("status").innerHTML='<span class="ok">Карточка создана.</span>';
 }
