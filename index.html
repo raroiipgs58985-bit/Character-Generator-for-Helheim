@@ -443,8 +443,26 @@ function card(c){
  L.push(`Остаток: ${xp}`);
 
  L.push("","НАВЫКИ");
- let sk=Object.keys(c.skills).sort();
- L.push(...(sk.length?sk.map(n=>`- ${n}${c.skills[n]?" +"+c.skills[n]:""}`):["-"]));
+ let normalizedSkills = {};
+
+for (const [rawName, value] of Object.entries(c.skills)) {
+  let name = rawName
+    .replace(/^Общее знание\s*\(/, "Общие знания (")
+    .replace(/^Учёное знание\s*\(/, "Учёные знания (");
+
+  if (!(name in normalizedSkills)) {
+    normalizedSkills[name] = value;
+  } else {
+    normalizedSkills[name] += value ? value : 5;
+  }
+}
+
+let sk = Object.keys(normalizedSkills).sort();
+
+L.push(...(sk.length ? sk.map(n => {
+  let bonus = normalizedSkills[n];
+  return bonus ? `- ${n} (+${bonus})` : `- ${n}`;
+}) : ["-"]));
 
  L.push("","ТАЛАНТЫ");
  L.push(...(c.talents.length?c.talents.map(x=>"- "+x):["-"]));
