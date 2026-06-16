@@ -151,21 +151,25 @@ async function loadText(path){
  return await r.text();
 }
 
- alert("JS запустился");
 async function loadDB(){
- try{
-  for(const [k,p] of Object.entries(DB_FILES)){
-   DB[k]=parseBlocks(await loadText(p));
+  try{
+    for(const [k,p] of Object.entries(DB_FILES)){
+      out("Загружаю файл: " + p);
+      DB[k]=parseBlocks(await loadText(p));
+    }
+
+    out("Файлы загружены. Собираю базу...");
+
+    DB.specialties={...DB.soldiers,...DB.officerSupport,...DB.civilian};
+    fillSelect("templateSelect",Object.keys(DB.templates));
+    fillSelect("specialtySelect",Object.keys(DB.specialties));
+    updateOrigins();
+    prepareStats();
+
+    out("База загружена. Выбери параметры и нажми «Сгенерировать карточку».");
+  }catch(e){
+    out("ОШИБКА ЗАГРУЗКИ БАЗЫ:\n" + e.message);
   }
-  DB.specialties={...DB.soldiers,...DB.officerSupport,...DB.civilian};
-  fillSelect("templateSelect",Object.keys(DB.templates));
-  fillSelect("specialtySelect",Object.keys(DB.specialties));
-  updateOrigins();
-  prepareStats();
-  out("База загружена. Выбери параметры и нажми «Сгенерировать карточку».");
- }catch(e){
-  out("Ошибка загрузки базы:\n"+e.message+"\n\nПроверь: index.html в корне, txt-файлы в data/.");
- }
 }
 
 function fillSelect(id,names){
