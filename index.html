@@ -54,6 +54,19 @@ pre{white-space:pre-wrap;word-wrap:break-word;background:#0b0c0f;border:1px soli
 <p id="pointsInfo" class="small"></p>
 <div id="statsBox" class="stats"></div>
 
+ <h3>Покупка характеристик</h3>
+<div class="stats">
+  <button onclick="buyStatUpgrade('НС')">НС +5</button>
+  <button onclick="buyStatUpgrade('НР')">НР +5</button>
+  <button onclick="buyStatUpgrade('СЛ')">СЛ +5</button>
+  <button onclick="buyStatUpgrade('ВН')">ВН +5</button>
+  <button onclick="buyStatUpgrade('ЛВ')">ЛВ +5</button>
+  <button onclick="buyStatUpgrade('ИН')">ИН +5</button>
+  <button onclick="buyStatUpgrade('СВ')">СВ +5</button>
+  <button onclick="buyStatUpgrade('ВС')">ВС +5</button>
+  <button onclick="buyStatUpgrade('ОЩ')">ОЩ +5</button>
+</div>
+
 <label>Родной мир / природа Искина</label>
 <select id="originSelect"></select>
 
@@ -305,7 +318,36 @@ function changeStat(stat,delta){
  }
  renderStats();
 }
+function buyStatUpgrade(stat){
+  if(!window.currentCharacter){
+    alert("Сначала сгенерируй карточку.");
+    return;
+  }
 
+  let c = window.currentCharacter;
+
+  if(!c.statUpgrades[stat]) c.statUpgrades[stat]=0;
+
+  let count = c.statUpgrades[stat];
+
+  let cost = 0;
+
+  if(count===0) cost=250;
+  else if(count===1) cost=500;
+  else if(count===2) cost=750;
+  else cost=1000;
+ let availableXp = c.startingXp + c.xpRefund - c.spentXp;
+if(availableXp < cost){
+  alert(`Не хватает опыта. Нужно ${cost}, доступно ${availableXp}.`);
+  return;
+}
+  c.stats[stat] += 5;
+  c.statUpgrades[stat] += 1;
+  c.spentXp += cost;
+
+  out(card(c));
+}
+ 
 function validateStats(){
  const mode=document.getElementById("statMode").value;
  if(mode!=="planned")return true;
@@ -440,9 +482,9 @@ function generate(){
   equipment:splitList(document.getElementById("manualEquipment").value),
   notes:document.getElementById("notes").value.trim(),
   startingXp:750,
-  xpRefund:0,
-  spentXp:0
- };
+xpRefund:0,
+spentXp:0,
+statUpgrades:{}
 
  addSkills(c,splitList(t.skills||t.starting_skills));
  addTalents(c,splitList(t.talents||t.starting_talents));
@@ -458,6 +500,7 @@ if (c.traits.some(x => x.includes("Быстрое обучение"))) {
 let sp=DB.specialties[sn]||{};
 c.spentXp+=intv(sp.cost,0);
 applyBlock(c,sp);
+ window.currentCharacter = c;
  out(card(c));
  document.getElementById("status").innerHTML='<span class="ok">Карточка создана.</span>';
 }
@@ -478,6 +521,16 @@ function card(c){
  L.push("","ХАРАКТЕРИСТИКИ");
 
  for(const s of MAIN_STATS)L.push(`${s}: ${c.stats[s]} (${BONUS_NAMES[s]} ${b[BONUS_NAMES[s]]})`);
+
+ L.push("");
+L.push("УЛУЧШЕНИЯ ХАРАКТЕРИСТИК");
+
+for(const s of MAIN_STATS){
+  let up = c.statUpgrades[s] || 0;
+  if(up>0){
+    L.push(`${s}: улучшено ${up} раз`);
+  }
+}
 
  L.push("","ПРОИЗВОДНЫЕ");
  L.push(`Движение: ${bm}/${bm*2}/${bm*3}/${bm*6}`);
