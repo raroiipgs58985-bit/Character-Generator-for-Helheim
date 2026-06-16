@@ -67,19 +67,17 @@ pre{white-space:pre-wrap;word-wrap:break-word;background:#0b0c0f;border:1px soli
   <button onclick="buyStatUpgrade('ОЩ')">ОЩ +5</button>
 </div>
 
- <h3>Покупка талантов</h3>
+ <h3>Покупка навыков</h3>
 <div class="row">
-    <select id="talentsBuySelect"
-            onchange="updateTalentVariantSelect()"></select>
-
-    <select id="talentVariantSelect"></select>
-
-    <button onclick="buyTalent()">Купить талант</button>
+  <select id="skillsBuySelect" onchange="updateSkillSpecSelect()"></select>
+  <select id="skillSpecSelect"></select>
+  <button onclick="buySkills()">Купить / улучшить навык</button>
 </div>
 
- <h3>Покупка талантов</h3>
+<h3>Покупка талантов</h3>
 <div class="row">
-  <select id="talentsBuySelect"></select>
+  <select id="talentsBuySelect" onchange="updateTalentVariantSelect()"></select>
+  <select id="talentVariantSelect"></select>
   <button onclick="buyTalent()">Купить талант</button>
 </div>
  
