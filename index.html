@@ -69,7 +69,8 @@ pre{white-space:pre-wrap;word-wrap:break-word;background:#0b0c0f;border:1px soli
 
  <h3>Покупка навыков</h3>
 <div class="row">
-  <select id="skillsBuySelect"></select>
+  <select id="skillsBuySelect" onchange="updateSkillSpecSelect()"></select>
+  <select id="skillSpecSelect"></select>
   <button onclick="buySkills()">Купить / улучшить навык</button>
 </div>
 
@@ -184,6 +185,7 @@ async function loadDB(){
     fillSelect("templateSelect",Object.keys(DB.templates));
     fillSelect("specialtySelect",Object.keys(DB.specialties));
    fillSelect("skillsBuySelect",Object.keys(DB.skills));
+   updateSkillSpecSelect();
     updateOrigins();
     prepareStats();
 
@@ -192,6 +194,31 @@ async function loadDB(){
     out("ОШИБКА ЗАГРУЗКИ БАЗЫ:\n" + e.message);
   }
 }
+
+ function updateSkillSpecSelect(){
+    let skill = document.getElementById("skillsBuySelect").value;
+    let spec = document.getElementById("skillSpecSelect");
+
+    spec.innerHTML = "";
+
+    let data = DB.skills[skill] || {};
+    let variants = splitList(data.variants || "");
+
+    if(!variants.length){
+        let o=document.createElement("option");
+        o.value="";
+        o.textContent="Без специализации";
+        spec.appendChild(o);
+        return;
+    }
+
+    for(const v of variants){
+        let o=document.createElement("option");
+        o.value=v;
+        o.textContent=v;
+        spec.appendChild(o);
+    }
+ }
 
 function fillSelect(id,names){
  let s=document.getElementById(id);
@@ -367,6 +394,11 @@ if(availableXp < cost){
 
     let c = window.currentCharacter;
     let skill = document.getElementById("skillsBuySelect").value;
+  let spec = document.getElementById("skillSpecSelect").value;
+
+if(spec){
+    skill = `${skill.trim()} (${spec.trim()})`;
+}
 
     let current = c.skills[skill] || 0;
 
