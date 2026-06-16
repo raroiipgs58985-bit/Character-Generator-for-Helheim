@@ -436,6 +436,101 @@ c.spentXp += cost;
 
     out(card(c));
  }
+
+ function checkTalentRequirements(req, c){
+
+    if(!req || req.trim() === "-" || req.trim() === "--"){
+        return true;
+    }
+
+    let groups = req.split("|");
+
+    for(let group of groups){
+
+        let ok = true;
+
+        let conditions = group.split(",");
+
+        for(let cond of conditions){
+
+            cond = cond.trim();
+
+            if(!cond) continue;
+
+            let m = cond.match(/^([А-ЯA-Z]{2})\s+(\d+)$/i);
+
+            if(m){
+                let stat = m[1].toUpperCase();
+                let need = parseInt(m[2]);
+
+                if((c.stats?.[stat] || 0) < need){
+                    ok = false;
+                    break;
+                }
+
+                continue;
+            }
+
+            if(!(c.talents || []).includes(cond)){
+                ok = false;
+                break;
+            }
+        }
+
+        if(ok) return true;
+    }
+
+    return false;
+ }
+
+ function buyTalent(){
+
+    if(!window.currentCharacter){
+        alert("Сначала сгенерируй карточку.");
+        return;
+    }
+
+    let c = window.currentCharacter;
+    let talent = document.getElementById("talentsBuySelect").value;
+
+    let talentData = DB.talents[talent];
+
+    if(!talentData){
+        alert("Талант не найден.");
+        return;
+    }
+
+    if(!c.talents) c.talents = [];
+
+    if(c.talents.includes(talent)){
+        alert("Этот талант уже куплен.");
+        return;
+    }
+
+    if(!checkTalentRequirements(talentData.requirements, c)){
+        alert("Не выполнены требования.");
+        return;
+    }
+
+    let tier = parseInt(talentData.tier || 1);
+
+    let cost = 250;
+
+    if(tier === 2) cost = 500;
+    else if(tier === 3) cost = 750;
+
+    let availableXp = c.startingXp + c.xpRefund - c.spentXp;
+
+    if(availableXp < cost){
+        alert(`Не хватает опыта. Нужно ${cost}, доступно ${availableXp}.`);
+        return;
+    }
+
+    c.talents.push(talent);
+    c.spentXp += cost;
+
+    out(card(c));
+ }
  
 function validateStats(){
  const mode=document.getElementById("statMode").value;
