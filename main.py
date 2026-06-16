@@ -51,20 +51,9 @@ class Character:
 
 
 def read_blocks(path: Path) -> dict[str, dict[str, str]]:
-    """
-    Читает txt-базу формата:
-
-    [Название]
-    key=value
-    key=value
-
-    Возвращает:
-    {
-        "Название": {"key": "value"}
-    }
-    """
-    blocks: dict[str, dict[str, str]] = {}
-    current: str | None = None
+    blocks = {}
+    current = None
+    current_key = None
 
     if not path.exists():
         print(f"Внимание: файл не найден: {path}")
@@ -73,17 +62,39 @@ def read_blocks(path: Path) -> dict[str, dict[str, str]]:
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
 
-        if not line:
+        if not line or line.startswith("#"):
             continue
 
         if line.startswith("[") and line.endswith("]"):
             current = line[1:-1].strip()
             blocks[current] = {}
+            current_key = None
             continue
 
-        if current and "=" in line:
+        if current is None:
+            continue
+
+        if line.endswith(":"):
+            current_key = line[:-1].strip()
+            blocks[current][current_key] = ""
+            continue
+
+        if line.startswith("-") and current_key:
+            item = line[1:].strip()
+            old = blocks[current].get(current_key, "")
+            blocks[current][current_key] = f"{old}; {item}".strip("; ").strip()
+            continue
+
+        if "=" in line:
             key, value = line.split("=", 1)
-            blocks[current][key.strip()] = value.strip()
+
+            if current_key and key.strip() in MAIN_STATS:
+                old = blocks[current].get(current_key, "")
+                item = f"{key.strip()}={value.strip()}"
+                blocks[current][current_key] = f"{old}; {item}".strip("; ").strip()
+            else:
+                blocks[current][key.strip()] = value.strip()
+                current_key = None
 
     return blocks
 
