@@ -54,18 +54,9 @@ pre{white-space:pre-wrap;word-wrap:break-word;background:#0b0c0f;border:1px soli
 <p id="pointsInfo" class="small"></p>
 <div id="statsBox" class="stats"></div>
 
- <h3>Покупка характеристик</h3>
-<div class="stats">
-  <button onclick="buyStatUpgrade('НС')">НС +5</button>
-  <button onclick="buyStatUpgrade('НР')">НР +5</button>
-  <button onclick="buyStatUpgrade('СЛ')">СЛ +5</button>
-  <button onclick="buyStatUpgrade('ВН')">ВН +5</button>
-  <button onclick="buyStatUpgrade('ЛВ')">ЛВ +5</button>
-  <button onclick="buyStatUpgrade('ИН')">ИН +5</button>
-  <button onclick="buyStatUpgrade('СВ')">СВ +5</button>
-  <button onclick="buyStatUpgrade('ВС')">ВС +5</button>
-  <button onclick="buyStatUpgrade('ОЩ')">ОЩ +5</button>
-</div>
+<h3>Покупка характеристик</h3>
+<p id="upgradeInfo" class="small"></p>
+<div id="upgradeStatsBox" class="stats"></div>
 
  <h3>Покупка навыков</h3>
 <div class="row">
@@ -369,6 +360,43 @@ function renderStats(){
  }
 }
 
+function renderUpgradeStats(){
+
+    if(!window.currentCharacter) return;
+
+    let c = window.currentCharacter;
+    let box = document.getElementById("upgradeStatsBox");
+    let info = document.getElementById("upgradeInfo");
+
+    if(!box || !info) return;
+
+    let left = c.startingXp + c.xpRefund - c.spentXp;
+
+    info.innerHTML = `Осталось опыта: ${left}`;
+
+    box.innerHTML = "";
+
+    for(const s of MAIN_STATS){
+
+        let count = c.statUpgrades[s] || 0;
+
+        let d = document.createElement("div");
+        d.className = "stat";
+
+        d.innerHTML = `
+            <div class="stat-title">${s}</div>
+            <div class="stat-title">Куплено: ${count * 5}</div>
+            <div class="stat-value">${c.stats[s]}</div>
+            <div class="stat-buttons">
+                <button type="button" onclick="refundStatUpgrade('${s}')">-</button>
+                <button type="button" onclick="buyStatUpgrade('${s}')">+</button>
+            </div>
+        `;
+
+        box.appendChild(d);
+    }
+}
+ 
 function changeStat(stat,delta){
  if(delta>0){
   if(spentPoints()>=currentPoints){
@@ -416,7 +444,37 @@ if(availableXp < cost){
   c.spentXp += cost;
 
   out(card(c));
+renderUpgradeStats();
 }
+
+ function refundStatUpgrade(stat){
+
+    if(!window.currentCharacter){
+        alert("Сначала сгенерируй карточку.");
+        return;
+    }
+
+    let c = window.currentCharacter;
+
+    if(!c.statUpgrades || !c.statUpgrades[stat]){
+        alert("Эта характеристика ещё не улучшалась.");
+        return;
+    }
+
+    let count = c.statUpgrades[stat];
+
+    let cost = 250;
+    if(count === 2) cost = 500;
+    else if(count === 3) cost = 750;
+    else if(count >= 4) cost = 1000;
+
+    c.stats[stat] -= 5;
+    c.statUpgrades[stat] -= 1;
+    c.spentXp -= cost;
+
+    out(card(c));
+    renderUpgradeStats();
+ }
 
  function buySkills(){
     if(!window.currentCharacter){
@@ -732,6 +790,13 @@ c.spentXp+=intv(sp.cost,0);
 applyBlock(c,sp);
  window.currentCharacter = c;
  out(card(c));
+ window.currentCharacter = c;
+
+out(card(c));
+renderUpgradeStats();
+
+document.getElementById("status").innerHTML=
+    '<span class="ok">Карточка создана.</span>';
  document.getElementById("status").innerHTML='<span class="ok">Карточка создана.</span>';
 }
 
