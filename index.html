@@ -94,6 +94,7 @@ pre{white-space:pre-wrap;word-wrap:break-word;background:#0b0c0f;border:1px soli
 
 <button onclick="generate()">Сгенерировать карточку</button>
 <button class="secondary" onclick="downloadCard()">Скачать карточку txt</button>
+ <button class="secondary" onclick="downloadExcelStyled()">Скачать карточку Excel</button>
 <p id="status" class="small"></p>
 </div>
 
@@ -892,6 +893,16 @@ function downloadCard(){
  a.click();
  URL.revokeObjectURL(a.href);
 }
+
+ }
+
+function downloadExcelStyled(){
+
+    alert("Excel экспорт пока подключаем");
+
+}
+
+loadDB();
 
 loadDB();
 </script>
